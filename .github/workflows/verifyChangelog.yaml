@@ -5,6 +5,7 @@
 name: Verify CHANGELOG Updated
 on:
   workflow_call:
+  pull_request:
 jobs:
   check-changelog:
     runs-on: ubuntu-latest
