@@ -1,8 +1,7 @@
 name: PR Validation
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_call:
 
 jobs:
   validate-pr:
@@ -17,7 +16,7 @@ jobs:
         with:
           script: |
             const { data } = await github.rest.repos.getContent({
-              owner: "Tools4everBV",
+              owner: "BlueBuildr",
               repo: ".github",
               path: ".github/config/ignoreFiles.json",
               ref: "main"
