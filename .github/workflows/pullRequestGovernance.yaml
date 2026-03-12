@@ -76,8 +76,12 @@ jobs:
     needs: validate-pr
     if: needs.validate-pr.outputs.onlyIgnored == 'true'
     runs-on: ubuntu-latest
-
+  
     steps:
-      - run: gh pr merge ${{ github.event.pull_request.number }} --merge --auto
+      - name: Checkout
+        uses: actions/checkout@v4
+  
+      - name: Auto merge PR
+        run: gh pr merge ${{ github.event.pull_request.number }} --merge --auto
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
