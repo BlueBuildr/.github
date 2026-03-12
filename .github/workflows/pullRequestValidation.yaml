@@ -1,0 +1,61 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get ignore list
+        id: ignore
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.repos.getContent({
+              owner: "Tools4everBV",
+              repo: ".github",
+              path: ".github/config/ignoreFiles.json",
+              ref: "main"
+            });
+
+            const content = Buffer.from(data.content, "base64").toString();
+            const ignoreList = JSON.parse(content);
+            core.setOutput("ignore", JSON.stringify(ignoreList));
+
+      - name: Validate PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ignoreList = JSON.parse('${{ steps.ignore.outputs.ignore }}');
+
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number
+              }
+            );
+
+            const changed = files.map(f => f.filename);
+
+            const onlyIgnored =
+              changed.length > 0 &&
+              changed.every(f => ignoreList.includes(f));
+
+            const hasChangelog =
+              changed.includes("CHANGELOG.md");
+
+            if (onlyIgnored) {
+              core.notice("Only ignored files changed.");
+              return;
+            }
+
+            if (!hasChangelog) {
+              core.setFailed("CHANGELOG.md must be updated.");
+            }
