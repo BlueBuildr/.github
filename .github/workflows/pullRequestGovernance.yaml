@@ -72,7 +72,18 @@ jobs:
             core.setOutput("hasChangelog", hasChangelog);
 
             if (!onlyIgnored && !hasChangelog) {
-              core.setFailed("CHANGELOG.md must be updated.");
+
+              const message = `
+              CHANGELOG.md must be updated.
+
+              Changed files:
+              ${changed.join('\n')}
+
+              Please add an entry to CHANGELOG.md describing the change.
+              `;
+
+              console.log(`::error::${message}`);
+              core.setFailed(message);
             }
 
   auto-merge-ignore:
