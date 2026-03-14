@@ -15,7 +15,6 @@ permissions:
 jobs:
 
   analyze-pr:
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     outputs:
@@ -93,7 +92,6 @@ Please add an entry to **CHANGELOG.md** describing the change.
               core.setFailed("CHANGELOG.md must be updated.");
 
   auto-merge-ignore:
-    if: github.event_name == 'pull_request'
     needs: analyze-pr
     runs-on: ubuntu-latest
 
