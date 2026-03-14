@@ -137,18 +137,18 @@ jobs:
           git diff --name-only ${{ github.event.before }} ${{ github.sha }} > files.txt
           if grep -q "CHANGELOG.md" files.txt; then
             echo "release=true" >> $GITHUB_OUTPUT
-
+  
       - name: Extract version
         if: steps.check.outputs.release == 'true'
         run: |
           VERSION=$(grep -m1 '^## \[' CHANGELOG.md | sed -E 's/## \[(.*)\].*/\1/')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-
+  
       - name: Extract release notes
         if: steps.check.outputs.release == 'true'
         run: |
           awk '/## \['"${VERSION}"'\]/{flag=1; next} /## \[/{flag=0} flag' CHANGELOG.md > release_notes.txt
-
+  
       - name: Create release
         if: steps.check.outputs.release == 'true'
         run: |
