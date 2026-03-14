@@ -70,47 +70,47 @@ jobs:
 
             if (!onlyIgnored && !hasChangelog) {
               const message = `
-❌ **CHANGELOG.md must be updated**
-
-Changed files:
-
-${changed.map(f => `- ${f}`).join('\n')}
-
-Please add an entry to **CHANGELOG.md** describing the change.
-`;
-
-              // Check if bot comment already exists
-              const comments = await github.rest.issues.listComments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.payload.pull_request.number
-              });
-
-              const botComment = comments.data.find(c =>
-                c.user.type === "Bot" &&
-                c.body.includes("❌ **CHANGELOG.md must be updated**")
-              );
-
-              if (botComment) {
-                // Update existing comment
-                await github.rest.issues.updateComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: botComment.id,
-                  body: message
-                });
-              } else {
-                // Create new comment
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.payload.pull_request.number,
-                  body: message
-                });
-              }
-
-              core.setFailed("CHANGELOG.md must be updated.");
-            }
+               **CHANGELOG.md must be updated**
+            
+            Changed files:
+            
+            ${changed.map(f => `- ${f}`).join('\n')}
+            
+            Please add an entry to **CHANGELOG.md** describing the change.
+            `;
+            
+                          // Check if bot comment already exists
+                          const comments = await github.rest.issues.listComments({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            issue_number: context.payload.pull_request.number
+                          });
+            
+                          const botComment = comments.data.find(c =>
+                            c.user.type === "Bot" &&
+                            c.body.includes("**CHANGELOG.md must be updated**")
+                          );
+            
+                          if (botComment) {
+                            // Update existing comment
+                            await github.rest.issues.updateComment({
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              comment_id: botComment.id,
+                              body: message
+                            });
+                          } else {
+                            // Create new comment
+                            await github.rest.issues.createComment({
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              issue_number: context.payload.pull_request.number,
+                              body: message
+                            });
+                          }
+            
+                          core.setFailed("CHANGELOG.md must be updated.");
+                        }
 
   auto-merge-ignore:
     needs: analyze-pr
