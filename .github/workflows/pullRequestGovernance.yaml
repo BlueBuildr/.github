@@ -135,11 +135,13 @@ jobs:
       - name: Check if CHANGELOG changed
         id: check
         run: |
-          git fetch origin main --depth=1
-          CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+          git fetch origin main --depth=0
+          CHANGED_FILES=$(git diff --name-only origin/main HEAD)
           echo "Changed files: $CHANGED_FILES"
           if echo "$CHANGED_FILES" | grep -q "CHANGELOG.md"; then
             echo "release=true" >> $GITHUB_OUTPUT
+          else
+            echo "release=false" >> $GITHUB_OUTPUT
   
       - name: Extract version
         if: steps.check.outputs.release == 'true'
