@@ -74,17 +74,23 @@ jobs:
             if (!onlyIgnored && !hasChangelog) {
 
               const message = `
-              CHANGELOG.md must be updated.
+❌ **CHANGELOG.md must be updated**
 
-              Changed files:
-              ${changed.join('\n')}
+Changed files:
 
-              Please add an entry to CHANGELOG.md describing the change.
-              `;
+${changed.map(f => `- ${f}`).join('\n')}
 
-              console.log(`::error::${message}`);
-              core.setFailed(message);
-            }
+Please add an entry to **CHANGELOG.md** describing the change.
+`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: message
+              });
+
+              core.setFailed("CHANGELOG.md must be updated.");
 
   auto-merge-ignore:
     if: github.event_name == 'pull_request'
@@ -112,7 +118,6 @@ jobs:
           git diff --name-only HEAD^ HEAD > files.txt
           if grep -q "CHANGELOG.md" files.txt; then
             echo "release=true" >> $GITHUB_OUTPUT
-          fi
 
       - name: Extract version
         if: steps.check.outputs.release == 'true'
