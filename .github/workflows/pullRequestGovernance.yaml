@@ -36,10 +36,8 @@ jobs:
               path: ".github/config/ignoreFiles.json",
               ref: "main"
             });
-
             const content = Buffer.from(data.content, "base64").toString();
             const ignoreList = JSON.parse(content);
-
             core.setOutput("list", JSON.stringify(ignoreList));
 
       - name: Analyze PR
@@ -71,7 +69,6 @@ jobs:
             core.setOutput("hasChangelog", hasChangelog);
 
             if (!onlyIgnored && !hasChangelog) {
-
               const message = `
 ❌ **CHANGELOG.md must be updated**
 
@@ -82,14 +79,38 @@ ${changed.map(f => `- ${f}`).join('\n')}
 Please add an entry to **CHANGELOG.md** describing the change.
 `;
 
-              await github.rest.issues.createComment({
+              // Check if bot comment already exists
+              const comments = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.payload.pull_request.number,
-                body: message
+                issue_number: context.payload.pull_request.number
               });
 
+              const botComment = comments.data.find(c =>
+                c.user.type === "Bot" &&
+                c.body.includes("❌ **CHANGELOG.md must be updated**")
+              );
+
+              if (botComment) {
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: message
+                });
+              } else {
+                // Create new comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.payload.pull_request.number,
+                  body: message
+                });
+              }
+
               core.setFailed("CHANGELOG.md must be updated.");
+            }
 
   auto-merge-ignore:
     needs: analyze-pr
@@ -113,7 +134,7 @@ Please add an entry to **CHANGELOG.md** describing the change.
       - name: Check if CHANGELOG changed
         id: check
         run: |
-          git diff --name-only HEAD^ HEAD > files.txt
+          git diff --name-only ${{ github.event.before }} ${{ github.sha }} > files.txt
           if grep -q "CHANGELOG.md" files.txt; then
             echo "release=true" >> $GITHUB_OUTPUT
 
