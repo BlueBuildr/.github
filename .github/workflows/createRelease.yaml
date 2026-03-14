@@ -1,6 +1,6 @@
 ##############################
 # Workflow: Create Release
-# Version:  0.0.5
+# Version:  0.0.6
 ##############################
 name: Create Release
 
@@ -20,16 +20,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Check if CHANGELOG changed
+      - name: Check if CHANGELOG.md changed
         id: check
         run: |
-          git diff --name-only HEAD^ HEAD > files.txt
-          if grep -q "CHANGELOG.md" files.txt; then
+          CHANGED=$(git log origin/main..HEAD --name-only --pretty=format: | grep 'CHANGELOG.md' || true)
+          echo "Changed files: $CHANGED"
+          if [ -n "$CHANGED" ]; then
             echo "release=true" >> $GITHUB_OUTPUT
-          fi
+          else
+            echo "release=false" >> $GITHUB_OUTPUT
 
       - name: Extract version
         if: steps.check.outputs.release == 'true'
