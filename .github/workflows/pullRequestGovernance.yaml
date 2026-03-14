@@ -1,9 +1,12 @@
-name: PR Governance
+name: PRGovernance
 
 on:
   workflow_call:
   pull_request:
     types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -11,7 +14,8 @@ permissions:
 
 jobs:
 
-  validate-pr:
+  analyze-pr:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     outputs:
@@ -20,8 +24,7 @@ jobs:
 
     steps:
 
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Get ignore list
         id: ignore
@@ -73,15 +76,49 @@ jobs:
             }
 
   auto-merge-ignore:
-    needs: validate-pr
-    if: needs.validate-pr.outputs.onlyIgnored == 'true'
+    if: github.event_name == 'pull_request'
+    needs: analyze-pr
     runs-on: ubuntu-latest
-  
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-  
       - name: Auto merge PR
+        if: needs.analyze-pr.outputs.onlyIgnored == 'true'
         run: gh pr merge ${{ github.event.pull_request.number }} --merge --auto
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  create-release:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Check if CHANGELOG changed
+        id: check
+        run: |
+          git diff --name-only HEAD^ HEAD > files.txt
+          if grep -q "CHANGELOG.md" files.txt; then
+            echo "release=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract version
+        if: steps.check.outputs.release == 'true'
+        run: |
+          VERSION=$(grep -m1 '^## \[' CHANGELOG.md | sed -E 's/## \[(.*)\].*/\1/')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Extract release notes
+        if: steps.check.outputs.release == 'true'
+        run: |
+          awk '/## \['"${VERSION}"'\]/{flag=1; next} /## \[/{flag=0} flag' CHANGELOG.md > release_notes.txt
+
+      - name: Create release
+        if: steps.check.outputs.release == 'true'
+        run: |
+          gh release create "${VERSION}" \
+            --title "${VERSION}" \
+            --notes-file release_notes.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
