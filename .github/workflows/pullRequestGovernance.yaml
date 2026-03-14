@@ -135,8 +135,10 @@ jobs:
       - name: Check if CHANGELOG changed
         id: check
         run: |
-          git diff --name-only ${{ github.event.before }} ${{ github.sha }} > files.txt
-          if grep -q "CHANGELOG.md" files.txt; then
+          git fetch origin main --depth=1
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+          echo "Changed files: $CHANGED_FILES"
+          if echo "$CHANGED_FILES" | grep -q "CHANGELOG.md"; then
             echo "release=true" >> $GITHUB_OUTPUT
   
       - name: Extract version
