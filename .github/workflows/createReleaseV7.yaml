@@ -25,32 +25,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      # -------------------------
-      # DEBUG (REMOVE LATER)
-      # -------------------------
-      - name: Debug event context
-        run: |
-          echo "---- GITHUB CONTEXT ----"
-          echo "event_name: ${{ github.event_name }}"
-          echo "sha: ${{ github.sha }}"
-
-          echo ""
-          echo "---- BEFORE (push-style) ----"
-          echo "before: ${{ github.event.before }}"
-
-          echo ""
-          echo "---- PR DATA ----"
-          echo "base.ref: ${{ github.event.pull_request.base.ref }}"
-          echo "base.sha: ${{ github.event.pull_request.base.sha }}"
-          echo "head.sha: ${{ github.event.pull_request.head.sha }}"
-
-      # -------------------------
-      # DETECT CHANGES (PR-SAFE)
-      # -------------------------
       - name: Detect changed files
         id: changes
         run: |
-          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
 
           echo "$CHANGED_FILES"
 
@@ -71,10 +49,6 @@ jobs:
         run: |
           echo "No CHANGELOG.md or Icon.png changes detected. Skipping release."
           exit 0
-
-      # -------------------------
-      # VERSION LOGIC
-      # -------------------------
 
       - name: Determine Version (from input or changelog)
         if: steps.changes.outputs.changelog == 'true'
@@ -109,10 +83,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # -------------------------
-      # RELEASE NOTES
-      # -------------------------
-
       - name: Extract Release Notes from CHANGELOG.md
         if: steps.changes.outputs.changelog == 'true'
         run: |
@@ -127,10 +97,6 @@ jobs:
         if: steps.changes.outputs.changelog != 'true' && steps.changes.outputs.icon == 'true'
         run: |
           echo "Patch release: updated Icon.png" > release_notes.txt
-
-      # -------------------------
-      # CREATE RELEASE (SAFE)
-      # -------------------------
 
       - name: Check if release exists
         id: check_release
