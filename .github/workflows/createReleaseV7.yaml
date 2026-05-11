@@ -56,11 +56,16 @@ jobs:
           if [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
           else
-            VERSION=$(grep -oP '^## \[\K[^]]+' CHANGELOG.md | head -n 1)
+            VERSION=$(sed -n 's/^## \[\([^]]*\)\].*/\1/p' CHANGELOG.md | head -n 1)
           fi
-
+      
+          if [ -z "$VERSION" ]; then
+            echo "Could not determine version."
+            exit 1
+          fi
+      
           [[ "$VERSION" != v* ]] && VERSION="v$VERSION"
-
+      
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "VERSION_NO_V=${VERSION#v}" >> $GITHUB_ENV
 
