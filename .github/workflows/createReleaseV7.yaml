@@ -69,24 +69,39 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "VERSION_NO_V=${VERSION#v}" >> $GITHUB_ENV
 
-      - name: Determine Version (icon patch bump)
-        if: steps.changes.outputs.changelog != 'true' && steps.changes.outputs.icon == 'true'
+      - name: Determine Version (from input or changelog)
+        if: steps.changes.outputs.changelog == 'true'
+        shell: bash
         run: |
-          LATEST=$(gh release list --limit 1 --json tagName -q '.[0].tagName')
-
-          if [ -z "$LATEST" ]; then
-            VERSION="v0.0.1"
+          echo "Input version: '${{ inputs.version }}'"
+      
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+            echo "Using workflow input version: $VERSION"
           else
-            VERSION_NO_V=${LATEST#v}
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NO_V"
-            PATCH=$((PATCH + 1))
-            VERSION="v$MAJOR.$MINOR.$PATCH"
+            echo "Extracting version from CHANGELOG.md..."
+      
+            VERSION=$(sed -n 's/^## \[\([^]]*\)\].*/\1/p' CHANGELOG.md | head -n 1)
+      
+            echo "Detected version from changelog: '$VERSION'"
           fi
-
+      
+          if [ -z "$VERSION" ]; then
+            echo "ERROR: Could not determine version."
+            exit 1
+          fi
+      
+          if [[ "$VERSION" != v* ]]; then
+            VERSION="v$VERSION"
+          fi
+      
+          VERSION_NO_V="${VERSION#v}"
+      
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "VERSION_NO_V=${VERSION#v}" >> $GITHUB_ENV
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "VERSION_NO_V=$VERSION_NO_V" >> $GITHUB_ENV
+      
+          echo "Final VERSION=$VERSION"
+          echo "Final VERSION_NO_V=$VERSION_NO_V"
 
       - name: Extract Release Notes from CHANGELOG.md
         if: steps.changes.outputs.changelog == 'true'
